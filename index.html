@@ -1,2 +1,572 @@
 <link rel="stylesheet" type="text/css" href="style.css">
 <link rel="emaildata" type="text/csv" href="emails/emails.csv">
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail Style Email Browser</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f6f8fc;
+            --sidebar-hover: #eaf1fb;
+            --sidebar-active: #d3e3fd;
+            --text-dark: #1f1f1f;
+            --text-gray: #5e5e5e;
+            --border-color: #e0e0e0;
+            --google-blue: #0b57d0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text-dark);
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background-color: var(--bg-color);
+            height: 64px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 238px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 22px;
+            color: var(--text-gray);
+            font-weight: 400;
+        }
+
+        .logo-section img {
+            height: 24px;
+        }
+
+        .header-middle {
+            flex: 1;
+            max-width: 720px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #eaf1fb;
+            padding: 0 16px;
+            border-radius: 24px;
+            height: 48px;
+        }
+
+        .header-middle input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 16px;
+            color: var(--text-dark);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-left: 20px;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        sidebar {
+            width: 256px;
+            padding: 0 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .compose-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: #c2e7ff;
+            color: #001d35;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 8px 0 16px 4px;
+            cursor: pointer;
+            width: fit-content;
+            transition: box-shadow 0.2s;
+        }
+
+        .compose-btn:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px 0 24px;
+            height: 32px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .sidebar-item.active {
+            background-color: var(--sidebar-active);
+            font-weight: 700;
+        }
+
+        .sidebar-item:hover:not(.active) {
+            background-color: var(--sidebar-hover);
+        }
+
+        .sidebar-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .material-icons-outlined {
+            color: var(--text-gray);
+            font-size: 20px;
+        }
+
+        .active .material-icons-outlined {
+            color: #001d35;
+        }
+
+        /* --- CONTENT AREA --- */
+        .content-area {
+            flex: 1;
+            background-color: #ffffff;
+            margin-right: 16px;
+            margin-bottom: 16px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid transparent;
+        }
+
+        /* Email List View */
+        .email-list-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .toolbar {
+            height: 48px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 20px;
+        }
+
+        .email-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .email-row {
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            height: 40px;
+            border-bottom: 1px solid #f1f3f4;
+            cursor: pointer;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .email-row:hover {
+            box-shadow: inset 1px 0 #dadce0, inset -1px 0 #dadce0, 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+            z-index: 1;
+        }
+
+        .email-row.unread {
+            background-color: #f8fafc;
+            font-weight: 700;
+        }
+
+        .email-selectors {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: 16px;
+            color: #c4c7c5;
+        }
+
+        .email-sender {
+            width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 10px;
+        }
+
+        .email-content-snippet {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            gap: 6px;
+        }
+
+        .email-subject {
+            color: var(--text-dark);
+        }
+
+        .email-snippet-text {
+            color: var(--text-gray);
+            font-weight: 400;
+        }
+
+        .email-date {
+            width: 80px;
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        /* Email Detail View */
+        .email-detail-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .detail-body {
+            padding: 24px;
+        }
+
+        .detail-subject {
+            font-size: 22px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: var(--text-dark);
+            padding-left: 48px;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .sender-info-block {
+            display: flex;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #039be5;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .sender-details .name {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .sender-details .email-address {
+            font-size: 12px;
+            color: var(--text-gray);
+            font-weight: 400;
+        }
+
+        .detail-date {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .email-html-body {
+            padding-left: 52px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        /* Utilities */
+        .btn-icon {
+            background: none;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <button class="btn-icon"><span class="material-icons-outlined">menu</span></button>
+            <div class="logo-section">
+                <img src="https://ssl.gstatic.com/ui/v1/icons/mail/rfr/logo_gmail_lockup_default_1x_r5.png" alt="Gmail Logo">
+            </div>
+        </div>
+        <div class="header-middle">
+            <span class="material-icons-outlined" style="color: var(--text-gray)">search</span>
+            <input type="text" id="search-input" placeholder="Search mail" oninput="filterEmails()">
+        </div>
+        <div class="header-right">
+            <button class="btn-icon"><span class="material-icons-outlined">help_outline</span></button>
+            <button class="btn-icon"><span class="material-icons-outlined">apps</span></button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        
+        <sidebar>
+            <button class="compose-btn">
+                <span class="material-icons-outlined">edit</span>
+                Compose
+            </button>
+            <div class="sidebar-item active">
+                <div class="sidebar-item-left">
+                    <span class="material-icons-outlined">inbox</span>
+                    <span>Inbox</span>
+                </div>
+                <span id="inbox-count" style="font-size: 12px;">0</span>
+            </div>
+            <div class="sidebar-item">
+                <div class="sidebar-item-left">
+                    <span class="material-icons-outlined">star_border</span>
+                    <span>Starred</span>
+                </div>
+            </div>
+            <div class="sidebar-item">
+                <div class="sidebar-item-left">
+                    <span class="material-icons-outlined">schedule</span>
+                    <span>Snoozed</span>
+                </div>
+            </div>
+            <div class="sidebar-item">
+                <div class="sidebar-item-left">
+                    <span class="material-icons-outlined">send</span>
+                    <span>Sent</span>
+                </div>
+            </div>
+            <div class="sidebar-item">
+                <div class="sidebar-item-left">
+                    <span class="material-icons-outlined">description</span>
+                    <span>Drafts</span>
+                </div>
+            </div>
+        </sidebar>
+
+        <div class="content-area">
+            
+            <div class="email-list-view" id="list-view">
+                <div class="toolbar">
+                    <span class="material-icons-outlined" style="cursor: pointer;">check_box_outline_blank</span>
+                    <span class="material-icons-outlined" style="cursor: pointer;" onclick="refreshData()">refresh</span>
+                    <span class="material-icons-outlined" style="cursor: pointer;">more_vert</span>
+                </div>
+                <div class="email-list" id="email-list-container">
+                    <div style="padding: 40px; text-align: center; color: var(--text-gray);">Loading emails from link...</div>
+                </div>
+            </div>
+
+            <div class="email-detail-view" id="detail-view">
+                <div class="toolbar">
+                    <button class="btn-icon" onclick="showListView()"><span class="material-icons-outlined">arrow_back</span></button>
+                    <button class="btn-icon"><span class="material-icons-outlined">report</span></button>
+                    <button class="btn-icon"><span class="material-icons-outlined">delete</span></button>
+                    <button class="btn-icon"><span class="material-icons-outlined">mail_outline</span></button>
+                </div>
+                <div class="detail-body">
+                    <div class="detail-subject" id="mail-detail-subject">Subject Header</div>
+                    <div class="detail-header">
+                        <div class="sender-info-block">
+                            <div class="avatar" id="mail-detail-avatar">U</div>
+                            <div class="sender-details">
+                                <div class="name" id="mail-detail-name">Sender Name</div>
+                                <div class="email-address" id="mail-detail-address">sender@example.com</div>
+                            </div>
+                        </div>
+                        <div class="detail-date" id="mail-detail-date">Date Time</div>
+                    </div>
+                    <div class="email-html-body" id="mail-detail-body">
+                        Email contents go here.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // EXTERNAL CSV LINK DATA SOURCE
+        // ==========================================
+        // Replace this URL with your actual CSV link. 
+        // Example: "https://raw.githubusercontent.com/username/repo/main/data.csv"
+        const csvSourceUrl = "emails/emails.csv"; // Placeholder link to test if needed
+        
+        let globalEmailsArray = [];
+
+        // App Initializer
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchAndLoadCSV();
+        });
+
+        // Fetch and parse CSV directly from the URL
+        function fetchAndLoadCSV() {
+            // Show loading state
+            document.getElementById('email-list-container').innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-gray);">Fetching emails...</div>`;
+
+            Papa.parse(csvSourceUrl, {
+                download: true, // This tells PapaParse to fetch from the URL
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    globalEmailsArray = results.data;
+                    renderEmailList(globalEmailsArray);
+                    document.getElementById('inbox-count').innerText = globalEmailsArray.length;
+                },
+                error: function(err) {
+                    document.getElementById('email-list-container').innerHTML = `<div style="padding: 40px; text-align: center; color: grey;">Looks like you're all caught up! ${err.message}</div>`;
+                }
+            });
+        }
+
+        // Render standard email list views
+        function renderEmailList(emails) {
+            const listContainer = document.getElementById('email-list-container');
+            listContainer.innerHTML = '';
+
+            if(emails.length === 0) {
+                listContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-gray);">No emails found. Ensure your CSV has columns: "Name", "Email", "Subject", "Date", "Body".</div>`;
+                return;
+            }
+
+            emails.forEach((email, index) => {
+                // Generate a clean text-only snippet for preview processing from the HTML string
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = email.Body || "";
+                const textSnippet = tempDiv.textContent || tempDiv.innerText || "";
+
+                const row = document.createElement('div');
+                row.className = `email-row ${index === 0 ? 'unread' : ''}`; // simulate first item as unread
+                row.onclick = () => showEmailDetail(email);
+
+                row.innerHTML = `
+                    <div class="email-selectors">
+                        <span class="material-icons-outlined">check_box_outline_blank</span>
+                        <span class="material-icons-outlined">star_border</span>
+                    </div>
+                    <div class="email-sender">${email.Name || 'Unknown'}</div>
+                    <div class="email-content-snippet">
+                        <span class="email-subject">${email.Subject || '(No Subject)'}</span>
+                        <span class="email-snippet-text">— ${textSnippet}</span>
+                    </div>
+                    <div class="email-date">${email.Date || ''}</div>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
+
+        // Display individual email structure content views
+        function showEmailDetail(email) {
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'flex';
+
+            document.getElementById('mail-detail-subject').innerText = email.Subject || '(No Subject)';
+            document.getElementById('mail-detail-name').innerText = email.Name || 'Unknown Sender';
+            document.getElementById('mail-detail-address').innerText = `<${email.Email || 'noreply@example.com'}>`;
+            document.getElementById('mail-detail-date').innerText = email.Date || '';
+            
+            // Extract and cleanly stamp identity initial letter for avatar placeholder frame
+            const firstLetter = email.Name ? email.Name.trim().charAt(0).toUpperCase() : 'U';
+            const avatar = document.getElementById('mail-detail-avatar');
+            avatar.innerText = firstLetter;
+            // Provide arbitrary dynamic color rotation adjustments based on name values
+            avatar.style.backgroundColor = `hsl(${firstLetter.charCodeAt(0) * 15 % 360}, 65%, 45%)`;
+
+            // CRITICAL STEP: Renders parsed raw HTML contents dynamically safely extracted directly from dataset rows
+            document.getElementById('mail-detail-body').innerHTML = email.Body || '';
+        }
+
+        function showListView() {
+            document.getElementById('list-view').style.display = 'flex';
+            document.getElementById('detail-view').style.display = 'none';
+        }
+
+        // Live filtering search query processes
+        function filterEmails() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = globalEmailsArray.filter(email => {
+                return (
+                    (email.Name && email.Name.toLowerCase().includes(query)) ||
+                    (email.Subject && email.Subject.toLowerCase().includes(query)) ||
+                    (email.Body && email.Body.toLowerCase().includes(query))
+                );
+            });
+            renderEmailList(filtered);
+        }
+
+        // Refresh data by re-fetching the URL
+        function refreshData() {
+            fetchAndLoadCSV();
+            document.getElementById('search-input').value = '';
+            showListView();
+        }
+    </script>
+</body>
+</html>

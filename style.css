@@ -1,9 +1,41 @@
 .imageTest {
 	width: 50vw;
 	height: auto;
-	
 	border: 0;
 	border-radius:20px;
-	
-	 overflow: hidden;
+	overflow: hidden;
+}
+
+.grid {
+	display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.content-area {
+	flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+	background: lightgrey;
+}
+
+.field input {
+    width: 100%;
+    padding: 12px;
+    background: #000;
+    border: 1px solid #222;
+    color: #fff;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+	font-size: .8rem;
+}
+
+.field label {
+    display: block;
+    font-size: 0.7rem;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+	font-family: 'Inter', sans-serif;
 }

@@ -308,6 +308,7 @@
             justify-content: center;
             font-weight: 500;
             font-size: 18px;
+            overflow: hidden; /* Ensures profile images stay perfectly circular */
         }
 
         .sender-details .name {
@@ -455,9 +456,8 @@
         // ==========================================
         // EXTERNAL CSV LINK DATA SOURCE
         // ==========================================
-        // Replace this URL with your actual CSV link. 
-        // Example: "https://raw.githubusercontent.com/username/repo/main/data.csv"
-        const csvSourceUrl = "emails/emails.csv"; // Placeholder link to test if needed
+        // Expected CSV Columns: "Name", "Email", "Subject", "Date", "Body", "PFP"
+        const csvSourceUrl = "YOUR_LINK_HERE.csv"; 
         
         let globalEmailsArray = [];
 
@@ -466,13 +466,11 @@
             fetchAndLoadCSV();
         });
 
-        // Fetch and parse CSV directly from the URL
         function fetchAndLoadCSV() {
-            // Show loading state
             document.getElementById('email-list-container').innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-gray);">Fetching emails...</div>`;
 
             Papa.parse(csvSourceUrl, {
-                download: true, // This tells PapaParse to fetch from the URL
+                download: true, 
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
@@ -481,29 +479,27 @@
                     document.getElementById('inbox-count').innerText = globalEmailsArray.length;
                 },
                 error: function(err) {
-                    document.getElementById('email-list-container').innerHTML = `<div style="padding: 40px; text-align: center; color: grey;">Looks like you're all caught up! ${err.message}</div>`;
+                    document.getElementById('email-list-container').innerHTML = `<div style="padding: 40px; text-align: center; color: red;">Error loading CSV link: ${err.message}</div>`;
                 }
             });
         }
 
-        // Render standard email list views
         function renderEmailList(emails) {
             const listContainer = document.getElementById('email-list-container');
             listContainer.innerHTML = '';
 
             if(emails.length === 0) {
-                listContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-gray);">No emails found. Ensure your CSV has columns: "Name", "Email", "Subject", "Date", "Body".</div>`;
+                listContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-gray);">No emails found.</div>`;
                 return;
             }
 
             emails.forEach((email, index) => {
-                // Generate a clean text-only snippet for preview processing from the HTML string
                 const tempDiv = document.createElement("div");
                 tempDiv.innerHTML = email.Body || "";
                 const textSnippet = tempDiv.textContent || tempDiv.innerText || "";
 
                 const row = document.createElement('div');
-                row.className = `email-row ${index === 0 ? 'unread' : ''}`; // simulate first item as unread
+                row.className = `email-row ${index === 0 ? 'unread' : ''}`; 
                 row.onclick = () => showEmailDetail(email);
 
                 row.innerHTML = `
@@ -522,7 +518,6 @@
             });
         }
 
-        // Display individual email structure content views
         function showEmailDetail(email) {
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'flex';
@@ -532,14 +527,21 @@
             document.getElementById('mail-detail-address').innerText = `<${email.Email || 'noreply@example.com'}>`;
             document.getElementById('mail-detail-date').innerText = email.Date || '';
             
-            // Extract and cleanly stamp identity initial letter for avatar placeholder frame
-            const firstLetter = email.Name ? email.Name.trim().charAt(0).toUpperCase() : 'U';
+            // --- AVATAR / PFP LOGIC ---
             const avatar = document.getElementById('mail-detail-avatar');
-            avatar.innerText = firstLetter;
-            // Provide arbitrary dynamic color rotation adjustments based on name values
-            avatar.style.backgroundColor = `hsl(${firstLetter.charCodeAt(0) * 15 % 360}, 65%, 45%)`;
+            
+            // Check if PFP data exists and isn't just an empty space
+            if (email.PFP && email.PFP.trim() !== "") {
+                // Render the image
+                avatar.innerHTML = `<img src="${email.PFP.trim()}" alt="PFP" style="width: 100%; height: 100%; object-fit: cover;">`;
+                avatar.style.backgroundColor = 'transparent'; // Remove background color when showing an image
+            } else {
+                // Default Gmail behavior: Initial on colored background
+                const firstLetter = email.Name ? email.Name.trim().charAt(0).toUpperCase() : 'U';
+                avatar.innerHTML = firstLetter;
+                avatar.style.backgroundColor = `hsl(${firstLetter.charCodeAt(0) * 15 % 360}, 65%, 45%)`;
+            }
 
-            // CRITICAL STEP: Renders parsed raw HTML contents dynamically safely extracted directly from dataset rows
             document.getElementById('mail-detail-body').innerHTML = email.Body || '';
         }
 
@@ -548,7 +550,6 @@
             document.getElementById('detail-view').style.display = 'none';
         }
 
-        // Live filtering search query processes
         function filterEmails() {
             const query = document.getElementById('search-input').value.toLowerCase();
             const filtered = globalEmailsArray.filter(email => {
@@ -561,7 +562,6 @@
             renderEmailList(filtered);
         }
 
-        // Refresh data by re-fetching the URL
         function refreshData() {
             fetchAndLoadCSV();
             document.getElementById('search-input').value = '';
